@@ -6,7 +6,11 @@ import argparse
 
 def parse():
     parser = argparse.ArgumentParser(
-        description='Create a secret santa pool and send out results')
+        description="""
+            Create a secret santa pool and send out results. Warning: if the debug tag (-d) is not set, 
+            emails will be sent automatically. The purpose of this is to keep the pairs anonymous from even the sender 
+            by default. If you would like to see results, set the -v tag.
+        """)
     parser.add_argument('participants_path', metavar='participants', type=str,
                         help='path to a file containing newline delimited list of participants in form "f_name l_name,_email". See example.txt for more info',
                         nargs='?',
@@ -20,11 +24,23 @@ def parse():
                         nargs='?',
                         default='securepassword123')
     parser.add_argument('-d', '--debug', action='store_true',
-                        help='If true, emails will be sent. If false, generated pairs will be printed to console')
+                        help='If true, emails will be sent. If false, generated pairs will be printed to console (use to run a few test simulations perhaps)')
     parser.add_argument('-p', '--port', type=str, default='465')
+    parser.add_argument('-v', '--verbose', action='store_true')
 
     args = parser.parse_args()
-    return args.participants_path, args.sender_email, args.sender_password, args.debug, args.port
+    return args.participants_path, args.sender_email, args.sender_password, args.debug, args.port, args.verbose
+
+
+def get_participants(infile):
+    participants = []
+    with open(infile) as infile:
+        for line in infile:
+            arr = line.split(',')
+            if arr[1].endswith('\n'):
+                arr[1] = arr[1][:-1]
+            participants.append((arr[0].strip(), arr[1].strip()))
+    return participants
 
 
 def create_random_pairs(participants):
@@ -48,17 +64,6 @@ def create_random_pairs(participants):
         random.shuffle(names)
 
 
-def get_participants(infile):
-    participants = []
-    with open(infile) as infile:
-        for line in infile:
-            arr = line.split(',')
-            if arr[1].endswith('\n'):
-                arr[1] = arr[1][:-1]
-            participants.append((arr[0], arr[1]))
-    return participants
-
-
 def send_emails(pairs, sender_email, sender_password, port):
     context = ssl.create_default_context()
     with smtplib.SMTP_SSL("smtp.gmail.com", port, context=context) as server:
@@ -71,7 +76,7 @@ def send_emails(pairs, sender_email, sender_password, port):
 
 
 def run():
-    infile, sender_email, sender_password, debug, port = parse()
+    infile, sender_email, sender_password, debug, port, verbose = parse()
     participants = get_participants(infile)
     pairs = create_random_pairs(participants)
     if debug:
@@ -79,7 +84,14 @@ def run():
         print([f'{pairs[x][0]}({x}) got {pairs[x][1]}' for x in pairs.keys()])
     else:
         send_emails(pairs, sender_email, sender_password, port)
-        print('done')
+        if verbose:
+            print(
+                f'=====EMAILS WERE SENT FROM "{sender_email}" AS FOLLOWS=====')
+            print([f'{pairs[x][0]}({x}) got {pairs[x][1]}' for x in pairs.keys()])
+        else:
+            print(
+                "Emails sent! If you're a participant as well, check your email for your recipient.")
+    print('\nHappy Holidays!')
 
 
 if __name__ == "__main__":
