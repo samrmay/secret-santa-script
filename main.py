@@ -11,9 +11,11 @@ def parse():
                         help='path to a file containing newline delimited list of participants in form "f_name l_name,_email". See example.txt for more info',
                         default='./participants.txt')
     parser.add_argument('sender_email', type=str,
-                        help='Email address from which secret santas will be sent their recipients',)
+                        help='Email address from which secret santas will be sent their recipients',
+                        default='dummy@email.com')
     parser.add_argument('sender_password', type=str,
-                        help='Password for sender email')
+                        help='Password for sender email',
+                        default='securepassword123')
     parser.add_argument('-d', '--debug', type=bool,
                         help='If true, emails will be sent. If false, generated pairs will be printed to console',
                         default=False)
